@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&family=Space+Grotesk:wght@300..700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    scroll-behavior: smooth;
+}
+
+@layer base {
+    .nav-item {
+        @apply block rounded-full px-4 py-1.5 text-sm
+        font-semibold text-white/70 transition duration-300
+        hover:bg-white/10 hover:text-white;
+    }
+
+    .mask-gradient {
+        mask-image: linear-gradient(
+            to bottom,
+            transparent,
+            rgba(0, 0, 0, 0.9),
+            rgba(0, 0, 0, 0.9),
+            transparent
+        );
+        /* for safari and some older browsers */
+        -webkit-mask-image: linear-gradient(
+            to bottom,
+            transparent, 
+            rgba(0, 0, 0, 0.9),
+            rgba(0, 0, 0, 0.9),
+            transparent
+        );
+    }
+
+    .mask-gradient-right {
+        mask-image: linear-gradient(
+            to right, 
+            transparent, 
+            rgba(0, 0, 0, 0.9),
+            rgba(0, 0, 0, 0.9),
+            transparent      
+        )
+    }
+}
+
+@layer utilities {
+    .container {
+        @apply lg:max-w-6xl;
+    }
+
+    ::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #20242d;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 6px;
+        border: 1px solid #eee;
+        transition: background 0.3s ease;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555555;
+    }
+} 
