@@ -12,11 +12,11 @@ const MainSection = () => {
     const handleSearch = async (location) => {
         try {
             const weatherData = await fetchWeather(location);
-            // const forecastData = await fetchForecast(location);
+            const forecastData = await fetchForecast(location);
             console.log("Weather Data:", weatherData);
-            // console.log("Forecast Data:", forecastData);
+            console.log("Forecast Data:", forecastData);
             setWeather(weatherData);
-            // setForecast(forecastData);
+            setForecast(forecastData);
         } catch (error) {
             console.error("Error fetching weather data:", error.message);
         }
@@ -25,8 +25,10 @@ const MainSection = () => {
     return (
         <div className="p-4">
             <SearchBox onSearch={handleSearch} />
-            {weather && <WeatherCard weather={weather} />}
-            {/* {forecast && <ForecastCard forecast={forecast} />} */}
+            <div className="container mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
+                {weather && <WeatherCard weather={weather} />}
+                {forecast && <ForecastCard forecast={forecast} />}
+            </div>
         </div>
     );
 };

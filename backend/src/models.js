@@ -57,6 +57,7 @@ WeatherSchema.pre('save', function (next) {
     next();
 });
 
+//primary index
 WeatherSchema.index(
     {
         'location.name': 1,
@@ -67,6 +68,7 @@ WeatherSchema.index(
 WeatherSchema.index({ date: -1 });
 WeatherSchema.index({ 'location.lat': 1, 'location.lon': 1 });
 
+// for saving
 WeatherSchema.statics.upsertWeather = async function (weatherData) {
     const { date, location, values } = weatherData;
     const normalizedDate = new Date(normalizeDate(date));

@@ -89,6 +89,7 @@ router.post('/historical', async (req, res) => {
             units,
         } = req.body;
 
+        // go for DB first
         const startDate = new Date(normalizeDate(startTime));
         const endDate = new Date(normalizeDate(endTime));
         const cachedData = await Weather.find({
