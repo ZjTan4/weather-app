@@ -1,17 +1,12 @@
+import axios from 'axios';
+
 export const deleteRecord = async (id) => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
     try {
-        const response = await fetch(`/api/records/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to delete record');
-        }
-        
-        return await response.json();
+        const response = await axios.delete(`${backendUrl}/records/${id}`);
+        return response.data;
     } catch (error) {
         console.error('Error deleting record:', error);
-        throw error;
+        throw error.response?.data || error;
     }
 };
