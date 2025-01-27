@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { normalizeDate } = require('./utils');
 
 // Highlight fields are listed in comment, maybe only keep them?
 const WeatherValuesSchema = new mongoose.Schema({
@@ -47,12 +48,48 @@ const WeatherSchema = new mongoose.Schema({
         required: true
     }
 }, {
-    timestamps: true // Adds createdAt and updatedAt fields
+    timestamps: true
 });
 
-WeatherSchema.index({ 'location.name': 1 });
+// Set date to midnight UTC to exclude time component
+WeatherSchema.pre('save', function (next) {
+    this.date = new Date(normalizeDate(this.date));
+    next();
+});
+
+WeatherSchema.index(
+    {
+        'location.name': 1,
+        'date': 1
+    },
+    { unique: true }
+);
 WeatherSchema.index({ date: -1 });
 WeatherSchema.index({ 'location.lat': 1, 'location.lon': 1 });
+
+WeatherSchema.statics.upsertWeather = async function (weatherData) {
+    const { date, location, values } = weatherData;
+    const normalizedDate = new Date(normalizeDate(date));
+
+    return this.findOneAndUpdate(
+        {
+            'location.name': location.name,
+            date: normalizedDate
+        },
+        {
+            $set: {
+                location,
+                values,
+                date: normalizedDate
+            }
+        },
+        {
+            new: true,
+            upsert: true,
+            runValidators: true
+        }
+    );
+};
 
 const Weather = mongoose.model('Weather', WeatherSchema);
 

@@ -1,26 +1,28 @@
 const express = require('express');
 const axios = require('axios');
 const { Weather } = require('./models');
+const { areLocationsSimilar } = require('./utils');
 const router = express.Router();
 
 // Get weather data
 router.get('/weather', async (req, res) => {
     try {
         const { location } = req.query;
-
         //go for DB first
-        const recentWeather = await Weather.findOne({
-            'location.name': location,
-            time: {
+        const recentWeathers = await Weather.find({
+            date: {
                 $gte: new Date(Date.now() - 30 * 60 * 1000) // Data less than 30 minutes old
             }
         }).sort({ time: -1 });
-
+        // Find the first matching location using our fuzzy matching
+        const recentWeather = recentWeathers.find(weather =>
+            areLocationsSimilar(weather.location.name, location)
+        );
         if (recentWeather) {
             console.log('Returning cached weather data');
             return res.json({
                 data: {
-                    time: recentWeather.time,
+                    date: recentWeather.time,
                     values: recentWeather.values
                 },
                 location: recentWeather.location
@@ -30,7 +32,6 @@ router.get('/weather', async (req, res) => {
         // If no recent data found, fetch from API
         const weather_uri = process.env.WEATHER_URI;
         const weather_apiKey = process.env.WEATHER_API_KEY;
-
         if (!weather_uri || !weather_apiKey) {
             throw new Error('Missing environment variables');
         }
@@ -40,7 +41,7 @@ router.get('/weather', async (req, res) => {
 
         // Save the new data to MongoDB
         const weatherData = new Weather({
-            time: response.data.data.time,
+            date: response.data.data.time,
             values: response.data.data.values,
             location: response.data.location
         });
@@ -58,22 +59,13 @@ router.get('/weather', async (req, res) => {
 router.get('/forecast', async (req, res) => {
     const weather_uri = process.env.WEATHER_URI;
     const weather_apiKey = process.env.WEATHER_API_KEY;
-
     if (!weather_uri || !weather_apiKey) {
-        console.error('Missing environment variables:', {
-            weather_uri: !!weather_uri,
-            weather_apiKey: !!weather_apiKey
-        });
-        return res.status(500).json({
-            error: 'Server configuration error - missing environment variables'
-        });
+        throw new Error('Missing environment variables');
     }
 
     const { location } = req.query;
     const request = `${weather_uri}/weather/forecast?location=${location}&timesteps=1d&apikey=${weather_apiKey}`;
-
     try {
-        console.log('Making request to:', request);
         const response = await axios.get(request);
         res.json(response.data);
     } catch (error) {
@@ -86,33 +78,30 @@ router.get('/forecast', async (req, res) => {
 
 router.post('/historical', async (req, res) => {
     try {
-        const { // some default values
-            location = "Calgary",
-            startTime = "2025-01-25T14:09:50Z",
-            endTime = "2025-01-26T14:09:50Z",
-            units = "metric",
+        const {
+            location,
+            startTime,
+            endTime,
+            units,
         } = req.body;
 
         // Check for cached historical data
-        const cachedData = await Weather.find({
-            'location.name': location,
-            time: {
-                $gte: new Date(startTime),
-                $lte: new Date(endTime)
-            }
-        }).sort({ time: 1 });
-
-        // If we have all the data points, return from cache
         const startDate = new Date(startTime);
         const endDate = new Date(endTime);
-        const expectedDataPoints = Math.ceil((endDate - startDate) / (60 * 60 * 1000)); // Hourly data points
-
+        const cachedData = await Weather.find({
+            date: {
+                $gte: startDate,
+                $lte: endDate,
+            }
+        }).find(weather => areLocationsSimilar(weather.location.name, location)).sort({ time: 1 });
+        const expectedDataPoints = Math.ceil((endDate - startDate) / (60 * 60 * 1000 * 24)); // Daily data points
+        // enough data points in DB
         if (cachedData.length >= expectedDataPoints) {
             console.log('Returning cached historical data');
             return res.json({
                 data: {
                     timelines: cachedData.map(record => ({
-                        time: record.time,
+                        date: record.date,
                         values: record.values
                     }))
                 },
@@ -123,7 +112,6 @@ router.post('/historical', async (req, res) => {
         // If not all data is cached, fetch from API
         const weather_uri = process.env.WEATHER_URI;
         const weather_apiKey = process.env.WEATHER_API_KEY;
-
         if (!weather_uri || !weather_apiKey) {
             throw new Error('Missing environment variables');
         }
@@ -133,21 +121,20 @@ router.post('/historical', async (req, res) => {
 
         const response = await axios.post(request, payload, {
             headers: {
-                'apikey': weather_apiKey,
-                'Content-Type': 'application/json'
+                "accept": "application/json",
+                "Accept-Encoding": "gzip, deflate",
+                'content-type': 'application/json'
             }
         });
 
         // Save historical data to MongoDB
-        const historicalPromises = response.data.data.timelines.map(timeline => {
+        const historicalPromises = response.data.data.timelines.intervals.map(interval => {
             return new Weather({
-                time: timeline.time,
-                values: timeline.values,
+                date: new Date(interval.startTime),
+                values: interval.values,
                 location: response.data.location,
-                isHistorical: true
             }).save();
         });
-
         await Promise.all(historicalPromises);
 
         res.json(response.data);
