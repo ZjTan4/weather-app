@@ -6,8 +6,9 @@ const InfoSection = ({ onClose }) => (
             <h2 className="text-xl font-bold text-gray-800">About This App</h2>
             <p className="mt-4 text-gray-600">
                 This weather app allows users to search for current weather and a
-                5-day forecast. It's built with React and TailwindCSS, and uses
-                APIs for live weather data.
+                7-day forecast. It also has a built-in database and users can perform 
+                CRUD operations via the interface on the web app. It's built with React 
+                and TailwindCSS, and uses tomorrow.io and Open-Meteo APIs for live weather data.
             </p>
             <button
                 onClick={onClose}

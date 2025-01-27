@@ -218,10 +218,10 @@ router.post('/historical', async (req, res) => {
             "daily": ["weather_code", "temperature_2m_max", "temperature_2m_min", "apparent_temperature_max", "apparent_temperature_min", "uv_index_max", "precipitation_probability_max", "wind_speed_10m_max"]
         };
         const responses = await fetchWeatherApi(historical_weather_uri, payload);
-        const weatherData = parseOpenMeteoData(responses).filter(data => {
+        const weatherData = parseOpenMeteoData(responses).filter(data => {              // parse the Open-Meteo Data
             const dataTime = new Date(data.time).getTime();
             return dataTime >= startDate.getTime() && dataTime <= endDate.getTime();
-        }).sort((a, b) => {
+        }).sort((a, b) => {                                                             // Sort the Data by date
             const timeA = new Date(a.time).getTime();
             const timeB = new Date(b.time).getTime();
             return timeB - timeA;
@@ -234,9 +234,9 @@ router.post('/historical', async (req, res) => {
                 values: {
                     temperature: Number(((weather.temperature2mMax + weather.temperature2mMin) / 2).toFixed(2)),
                     weatherCode: convertOpenMeteoToTomorrowCode(weather.weatherCode),
-                    windSpeed: Number((weather.windSpeed10mMax / 3.6).toFixed(2)), // Convert km/h to m/s (divide by 3.6)
+                    windSpeed: Number((weather.windSpeed10mMax / 3.6).toFixed(2)),      // Convert km/h to m/s (divide by 3.6)
                     precipitationProbability: weather.precipitationProbabilityMax,
-                    uvIndex: Math.floor(weather.uvIndexMax), // Keep only integer part
+                    uvIndex: Math.floor(weather.uvIndexMax),                            // Keep only integer part
                     temperatureApparent: Number(((weather.apparentTemperatureMax + weather.apparentTemperatureMin) / 2).toFixed(2))
                 },
                 location: responseForLocation.data.location
