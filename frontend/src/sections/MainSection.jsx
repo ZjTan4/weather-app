@@ -18,7 +18,8 @@ const MainSection = () => {
             setWeather(weatherData);
             setForecast(forecastData);
         } catch (error) {
-            console.error("Error fetching weather data:", error.message);
+            // console.error("Error fetching weather data:", error.message);
+            alert(error.message);
         }
     };
 
