@@ -38,7 +38,7 @@ const MainSection = () => {
             </div>
             {
                 weather && (
-                    <div className="mt-10 w-full max-w-4xl mx-auto rounded-lg overflow-hidden shadow-lg bg-white">
+                    <div className="mt-10 w-full mx-auto rounded-lg overflow-hidden shadow-lg bg-white">
                         <div className="p-4 border-b border-gray-200">
                             <h3 className="text-lg font-semibold text-gray-800">Location Map</h3>
                         </div>
