@@ -12,6 +12,15 @@ const RecordEntry = ({
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedValues, setEditedValues] = useState({});
+    const values = record?.values || {};
+    const {
+        temperature = 'N/A',
+        weatherCode = 1000,
+        windSpeed = 'N/A',
+        precipitationProbability = 'N/A',
+        uvIndex = 'N/A',
+        temperatureApparent = 'N/A'
+    } = values;
 
     const formatDate = (dateString) => {
         try {
@@ -27,16 +36,6 @@ const RecordEntry = ({
         }
     };
 
-    const values = record?.values || {};
-    const {
-        temperature = 'N/A',
-        weatherCode = 1000,
-        windSpeed = 'N/A',
-        precipitationProbability = 'N/A',
-        uvIndex = 'N/A',
-        temperatureApparent = 'N/A'
-    } = values;
-
     const handleEditClick = () => {
         setIsEditing(true);
         setEditedValues({
@@ -47,7 +46,6 @@ const RecordEntry = ({
             uvIndex
         });
     };
-
     const handleConfirm = () => {
         if (onEdit) {
             const updatedRecord = {
@@ -61,12 +59,10 @@ const RecordEntry = ({
         }
         setIsEditing(false);
     };
-
     const handleCancel = () => {
         setIsEditing(false);
         setEditedValues({});
     };
-
     const handleInputChange = (field, value) => {
         setEditedValues(prev => ({
             ...prev,

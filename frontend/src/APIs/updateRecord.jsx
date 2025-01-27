@@ -1,21 +1,21 @@
+import axios from 'axios';
+
 export const updateRecord = async (id, updateData) => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
     try {
-        const response = await fetch(`/api/records/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(updateData)
-        });
+        const response = await axios.put(
+            `${backendUrl}/records/${id}`,
+            updateData,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
         
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to update record');
-        }
-        
-        return await response.json();
+        return response.data;
     } catch (error) {
         console.error('Error updating record:', error);
-        throw error;
+        throw error.response?.data || error;
     }
 };

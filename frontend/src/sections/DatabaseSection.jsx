@@ -64,7 +64,7 @@ const DatabaseSection = () => {
             {loading ? (
                 <div className="text-center mt-4">Loading...</div>
             ) : (
-                <RecordList recordList={records}/>
+                <RecordList recordList={records} setRecordList={setRecords}/>
             )}
         </section>
     );
