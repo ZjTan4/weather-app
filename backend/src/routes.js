@@ -43,6 +43,39 @@ const parseOpenMeteoData = (responses) => {
     return weatherData;
 }
 
+//helper function for converting open-meteo's weather code to tomorrow.io
+const convertOpenMeteoToTomorrowCode = (openMeteoCode) => {
+    // Open-Meteo to Tomorrow.io weather code mapping
+    const codeMapping = {
+        0: 1000,  // Clear sky -> Clear
+        1: 1100,  // Mainly clear -> Mostly Clear
+        2: 1101,  // Partly cloudy -> Partly Cloudy
+        3: 1102,  // Overcast -> Mostly Cloudy
+        45: 2000, // Foggy -> Fog
+        48: 2000, // Depositing rime fog -> Fog
+        51: 4000, // Light drizzle -> Drizzle
+        53: 4000, // Moderate drizzle -> Drizzle
+        55: 4000, // Dense drizzle -> Drizzle
+        61: 4200, // Slight rain -> Light Rain
+        63: 4001, // Moderate rain -> Rain
+        65: 4201, // Heavy rain -> Heavy Rain
+        71: 5100, // Slight snow fall -> Light Snow
+        73: 5000, // Moderate snow fall -> Snow
+        75: 5101, // Heavy snow fall -> Heavy Snow
+        77: 5001, // Snow grains -> Flurries
+        80: 4000, // Slight rain showers -> Drizzle
+        81: 4001, // Moderate rain showers -> Rain
+        82: 4201, // Violent rain showers -> Heavy Rain
+        85: 5100, // Slight snow showers -> Light Snow
+        86: 5101, // Heavy snow showers -> Heavy Snow
+        95: 8000, // Thunderstorm -> Thunderstorm
+        96: 8000, // Thunderstorm with slight hail -> Thunderstorm
+        99: 8000  // Thunderstorm with heavy hail -> Thunderstorm
+    };
+
+    return codeMapping[openMeteoCode] || 1000; // Default to Clear if code not found
+};
+
 // fetch weather data
 router.get('/weather', async (req, res) => {
     try {
@@ -199,12 +232,12 @@ router.post('/historical', async (req, res) => {
             Weather.upsertWeather({
                 date: new Date(normalizeDate(weather.time)),
                 values: {
-                    temperature: (weather.temperature2mMax + weather.temperature2mMin) / 2,
-                    weatherCode: weather.weatherCode,
-                    windSpeed: weather.windSpeed10mMax,
+                    temperature: Number(((weather.temperature2mMax + weather.temperature2mMin) / 2).toFixed(2)),
+                    weatherCode: convertOpenMeteoToTomorrowCode(weather.weatherCode),
+                    windSpeed: Number((weather.windSpeed10mMax / 3.6).toFixed(2)), // Convert km/h to m/s (divide by 3.6)
                     precipitationProbability: weather.precipitationProbabilityMax,
-                    uvIndex: weather.uvIndexMax,
-                    apparentTemperature: (weather.apparentTemperatureMax + weather.apparentTemperatureMin) / 2
+                    uvIndex: Math.floor(weather.uvIndexMax), // Keep only integer part
+                    temperatureApparent: Number(((weather.apparentTemperatureMax + weather.apparentTemperatureMin) / 2).toFixed(2))
                 },
                 location: responseForLocation.data.location
             })
