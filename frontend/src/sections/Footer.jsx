@@ -5,7 +5,7 @@ const Footer = () => (
         </p>
         <p>
             <a
-                href="https://github.com/your-repo"
+                href="https://github.com/ZjTan4/weather-app.git"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-400"

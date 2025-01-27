@@ -2,10 +2,7 @@ const mongoose = require('mongoose');
 
 const WeatherSchema = new mongoose.Schema({
     location: String,
-    dateRange: {
-        start: Date,
-        end: Date,
-    },
+    date: Date,
     data: Object,
 });
 

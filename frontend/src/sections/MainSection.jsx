@@ -3,6 +3,7 @@ import SearchBox from "../components/SearchBox";
 import WeatherCard from "../components/WeatherCard";
 import { fetchWeather } from "../apis/fetchWeather";
 import { fetchForecast } from "../apis/fetchForecast";
+import ForecastCard from "../components/Forecast";
 
 const MainSection = () => {
     const [weather, setWeather] = useState(null);
@@ -12,6 +13,8 @@ const MainSection = () => {
         try {
             const weatherData = await fetchWeather(location);
             const forecastData = await fetchForecast(location);
+            console.log("Weather Data:", weatherData);
+            console.log("Forecast Data:", forecastData);
             setWeather(weatherData);
             setForecast(forecastData);
         } catch (error) {
@@ -25,9 +28,9 @@ const MainSection = () => {
             {weather && <WeatherCard weather={weather} />}
             {forecast && (
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {forecast.map((day, index) => (
+                    {forecast.timelines.daily.map((day, index) => (
                         <div key={index}>
-                            <ForecastCard forecast={day} />
+                            {/* <ForecastCard forecast={day} /> */}
                         </div>
                     ))}
                 </div>
