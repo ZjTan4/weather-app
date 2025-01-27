@@ -4,7 +4,7 @@ const { Weather } = require('./models');
 const { normalizeDate, areLocationsSimilar } = require('./utils');
 const router = express.Router();
 
-// Get weather data
+// fetch weather data
 router.get('/weather', async (req, res) => {
     try {
         const { location } = req.query;
@@ -60,6 +60,7 @@ router.get('/weather', async (req, res) => {
     }
 });
 
+//fetch forecast data
 router.get('/forecast', async (req, res) => {
     const weather_uri = process.env.WEATHER_URI;
     const weather_apiKey = process.env.WEATHER_API_KEY;
@@ -90,7 +91,7 @@ router.get('/forecast', async (req, res) => {
     }
 });
 
-
+// fetch historical data
 router.post('/historical', async (req, res) => {
     try {
         const {
@@ -167,6 +168,7 @@ router.post('/historical', async (req, res) => {
     }
 });
 
+//get all records in the DB
 router.get('/records', async (req, res) => {
     try {
         const records = await Weather.find({})
