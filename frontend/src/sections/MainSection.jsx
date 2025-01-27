@@ -3,7 +3,7 @@ import SearchBox from "../components/SearchBox";
 import WeatherCard from "../components/WeatherCard";
 import { fetchWeather } from "../apis/fetchWeather";
 import { fetchForecast } from "../apis/fetchForecast";
-import ForecastCard from "../components/Forecast";
+import ForecastCard from "../components/ForecastCard";
 
 const MainSection = () => {
     const [weather, setWeather] = useState(null);
@@ -26,15 +26,7 @@ const MainSection = () => {
         <div className="p-4">
             <SearchBox onSearch={handleSearch} />
             {weather && <WeatherCard weather={weather} />}
-            {forecast && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {forecast.timelines.daily.map((day, index) => (
-                        <div key={index}>
-                            {/* <ForecastCard forecast={day} /> */}
-                        </div>
-                    ))}
-                </div>
-            )}
+            {forecast && <ForecastCard forecast={forecast} />}
         </div>
     );
 };

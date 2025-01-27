@@ -3,6 +3,9 @@ const Footer = () => (
         <p className="text-sm">
             Weather App © 2025. Built with React and TailwindCSS.
         </p>
+        <p className="text-sm mt-2">
+            Zijie Tan
+        </p>
         <p>
             <a
                 href="https://github.com/ZjTan4/weather-app.git"

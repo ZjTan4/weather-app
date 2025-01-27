@@ -1,5 +1,4 @@
 const WeatherCard = ({ weather }) => {
-    // Helper function to get weather condition text based on weatherCode
     const getWeatherCondition = (code) => {
         const conditions = {
             1000: "Clear",
@@ -24,7 +23,6 @@ const WeatherCard = ({ weather }) => {
         return conditions[code] || "Unknown";
     };
 
-    // Helper function to get weather icon based on weatherCode
     const getWeatherIcon = (code) => {
         const icons = {
             1000: "☀️",
@@ -60,7 +58,7 @@ const WeatherCard = ({ weather }) => {
                     <p className="text-lg">Temperature: {weather.data.values.temperature}°C</p>
                     <p>Condition: {getWeatherCondition(weather.data.values.weatherCode)}</p>
                     <p>Humidity: {weather.data.values.humidity}%</p>
-                    <p>Wind: {weather.data.values.windSpeed} m/s</p>
+                    <p>Wind Speed: {weather.data.values.windSpeed} m/s</p>
                     <p>Feels like: {weather.data.values.temperatureApparent}°C</p>
                     <p>UV Index: {weather.data.values.uvIndex}</p>
                 </div>

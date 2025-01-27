@@ -5,28 +5,50 @@ const router = express.Router();
 
 // Get weather data
 router.get('/weather', async (req, res) => {
-    const weather_uri = process.env.WEATHER_URI;
-    const weather_apiKey = process.env.WEATHER_API_KEY;
-
-    if (!weather_uri || !weather_apiKey) {
-        console.error('Missing environment variables:', {
-            weather_uri: !!weather_uri,
-            weather_apiKey: !!weather_apiKey
-        });
-        return res.status(500).json({
-            error: 'Server configuration error - missing environment variables'
-        });
-    }
-
-    const { location } = req.query;
-    const request = `${weather_uri}/weather/realtime?location=${location}&apikey=${weather_apiKey}`;
-
     try {
-        console.log('Making request to:', request);
+        const { location } = req.query;
+
+        //go for DB first
+        const recentWeather = await Weather.findOne({
+            'location.name': location,
+            time: {
+                $gte: new Date(Date.now() - 30 * 60 * 1000) // Data less than 30 minutes old
+            }
+        }).sort({ time: -1 });
+
+        if (recentWeather) {
+            console.log('Returning cached weather data');
+            return res.json({
+                data: {
+                    time: recentWeather.time,
+                    values: recentWeather.values
+                },
+                location: recentWeather.location
+            });
+        }
+
+        // If no recent data found, fetch from API
+        const weather_uri = process.env.WEATHER_URI;
+        const weather_apiKey = process.env.WEATHER_API_KEY;
+
+        if (!weather_uri || !weather_apiKey) {
+            throw new Error('Missing environment variables');
+        }
+
+        const request = `${weather_uri}/weather/realtime?location=${location}&apikey=${weather_apiKey}`;
         const response = await axios.get(request);
+
+        // Save the new data to MongoDB
+        const weatherData = new Weather({
+            time: response.data.data.time,
+            values: response.data.data.values,
+            location: response.data.location
+        });
+        await weatherData.save();
+
         res.json(response.data);
     } catch (error) {
-        console.error('Error fetching weather:', error.message);
+        console.error('Error in weather route:', error);
         res.status(500).json({
             error: `Failed to fetch weather data: ${error.message}`
         });
@@ -58,6 +80,82 @@ router.get('/forecast', async (req, res) => {
         console.error('Error fetching forecast:', error.message);
         res.status(500).json({
             error: `Failed to fetch forecast data: ${error.message}`
+        });
+    }
+});
+
+router.post('/historical', async (req, res) => {
+    try {
+        const { // some default values
+            location = "Calgary",
+            startTime = "2025-01-25T14:09:50Z",
+            endTime = "2025-01-26T14:09:50Z",
+            units = "metric",
+        } = req.body;
+
+        // Check for cached historical data
+        const cachedData = await Weather.find({
+            'location.name': location,
+            time: {
+                $gte: new Date(startTime),
+                $lte: new Date(endTime)
+            }
+        }).sort({ time: 1 });
+
+        // If we have all the data points, return from cache
+        const startDate = new Date(startTime);
+        const endDate = new Date(endTime);
+        const expectedDataPoints = Math.ceil((endDate - startDate) / (60 * 60 * 1000)); // Hourly data points
+
+        if (cachedData.length >= expectedDataPoints) {
+            console.log('Returning cached historical data');
+            return res.json({
+                data: {
+                    timelines: cachedData.map(record => ({
+                        time: record.time,
+                        values: record.values
+                    }))
+                },
+                location: cachedData[0].location
+            });
+        }
+
+        // If not all data is cached, fetch from API
+        const weather_uri = process.env.WEATHER_URI;
+        const weather_apiKey = process.env.WEATHER_API_KEY;
+
+        if (!weather_uri || !weather_apiKey) {
+            throw new Error('Missing environment variables');
+        }
+
+        const request = `${weather_uri}/historical?apikey=${weather_apiKey}`;
+        const payload = { location, fields, startTime, endTime, units };
+
+        const response = await axios.post(request, payload, {
+            headers: {
+                'apikey': weather_apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // Save historical data to MongoDB
+        const historicalPromises = response.data.data.timelines.map(timeline => {
+            return new Weather({
+                time: timeline.time,
+                values: timeline.values,
+                location: response.data.location,
+                isHistorical: true
+            }).save();
+        });
+
+        await Promise.all(historicalPromises);
+
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error in historical route:', error);
+        res.status(500).json({
+            error: 'Failed to fetch historical weather data',
+            details: error.message
         });
     }
 });
