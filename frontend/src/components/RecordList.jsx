@@ -2,7 +2,7 @@ import RecordEntry from "./RecordEntry";
 
 const RecordList = ({ recordList }) => {
     return (
-        <div>
+        <div className="mt-4">
             <ul>
                 {recordList.map((record) => (
                     <li key={record._id}>
