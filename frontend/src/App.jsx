@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Header from "./sections/Header";
 import Footer from "./sections/Footer";
 import MainSection from "./sections/MainSection";
+import DatabaseSection from "./sections/DatabaseSection";
 
 const App = () => {
     return (
@@ -9,6 +10,7 @@ const App = () => {
             <Header />
             <main className="flex-grow p-4">
                 <MainSection />
+                <DatabaseSection />
             </main>
             <Footer />
         </div>

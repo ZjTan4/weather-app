@@ -74,11 +74,22 @@ router.get('/forecast', async (req, res) => {
         res.json(response.data);
     } catch (error) {
         console.error('Error fetching forecast:', error.message);
+        if (error.response) {
+            if (error.response.status === 429) {
+                return res.status(429).json({
+                    error: 'Rate limit exceeded: Maximum API calls per hour reached for Tomorrow.io weather API. Please try again in the next hour.'
+                });
+            }
+            return res.status(error.response.status).json({
+                error: `Failed to fetch forecast data: ${error.response.data.message || error.message}`
+            });
+        }
         res.status(500).json({
             error: `Failed to fetch forecast data: ${error.message}`
         });
     }
 });
+
 
 router.post('/historical', async (req, res) => {
     try {
@@ -151,6 +162,99 @@ router.post('/historical', async (req, res) => {
         console.error('Error in historical route:', error);
         res.status(500).json({
             error: 'Failed to fetch historical weather data',
+            details: error.message
+        });
+    }
+});
+
+router.get('/records', async (req, res) => {
+    try {
+        const records = await Weather.find({})
+            .sort({ updatedAt: -1 });
+
+        res.json({
+            success: true,
+            data: records,
+            count: records.length,
+            message: 'Successfully retrieved all weather records'
+        });
+    } catch (error) {
+        console.error('Error fetching records:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch weather records',
+            details: error.message
+        });
+    }
+});
+
+// Update a specific record
+router.put('/records/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+
+        // Find and update the record
+        const updatedRecord = await Weather.findByIdAndUpdate(
+            id,
+            {
+                $set: {
+                    values: updateData.values,
+                    location: updateData.location,
+                    date: updateData.date
+                }
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        if (!updatedRecord) {
+            return res.status(404).json({
+                success: false,
+                error: 'Record not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: updatedRecord,
+            message: 'Weather record updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating record:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update weather record',
+            details: error.message
+        });
+    }
+});
+
+// Delete a specific record
+router.delete('/records/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedRecord = await Weather.findByIdAndDelete(id);
+
+        if (!deletedRecord) {
+            return res.status(404).json({
+                success: false,
+                error: 'Record not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: deletedRecord,
+            message: 'Weather record deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting record:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete weather record',
             details: error.message
         });
     }

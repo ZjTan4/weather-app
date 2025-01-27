@@ -99,7 +99,7 @@ const ForecastCard = ({ forecast }) => {
     };
 
     return (
-        <div className="bg-blue-50 rounded-md p-4 shadow-sm">
+        <div className="bg-blue-50 rounded-md p-4 shadow-sm ">
             <div className="mb-4">
                 <select
                     value={selectedMetric}
@@ -116,7 +116,7 @@ const ForecastCard = ({ forecast }) => {
             <div className="h-[300px]">
                 <Line data={chartData} options={options} />
             </div>
-            <div className="mt-4 grid grid-cols-5 gap-2 text-sm">
+            <div className="ml-4 mt-4 grid grid-cols-7 gap-10 text-sm">
                 {forcastData.map((day, index) => (
                     <div key={index} className="text-center">
                         <p className="font-semibold">
