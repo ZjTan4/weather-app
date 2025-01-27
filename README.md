@@ -1,3 +1,5 @@
+Zijie's Weather App
+
 Overview
 Backend: Node.js + Express
 Deployed on Render under https://weather-app-ut4m.onrender.com
@@ -10,4 +12,11 @@ Deployed on Vercel under https://weather-app-two-sage-56.vercel.app/
 To run frontend, run `npm run dev`(development) or `npm run build` (production)
 
 Introduction
+Realtime and forecast weather on location search
+Integration with Google Map Api
 
+Database
+Create
+Read
+Update
+Delete
