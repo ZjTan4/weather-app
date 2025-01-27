@@ -1,10 +1,14 @@
-const RecordList = () => {
+import RecordEntry from "./RecordEntry";
+
+const RecordList = ({ recordList }) => {
     return (
         <div>
             <ul>
-                <li>Record 1</li>
-                <li>Record 2</li>
-                <li>Record 3</li>
+                {recordList.map((record) => (
+                    <li key={record._id}>
+                        <RecordEntry record={record} />
+                    </li>
+                ))}
             </ul>
         </div>
     );

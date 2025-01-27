@@ -3,6 +3,45 @@ const axios = require('axios');
 const { Weather } = require('./models');
 const { normalizeDate, areLocationsSimilar } = require('./utils');
 const router = express.Router();
+const { fetchWeatherApi } = require('openmeteo');
+
+// Helper function to form time ranges
+const range = (start, stop, step) =>
+    Array.from({ length: (stop - start) / step }, (_, i) => start + i * step);
+
+// helper function for parsing the data from open-meteo
+const parseOpenMeteoData = (responses) => {
+    const response = responses[0];
+    const utcOffsetSeconds = response.utcOffsetSeconds();
+    const daily = response.daily();
+    const rawWeatherData = {
+        daily: {
+            time: range(Number(daily.time()), Number(daily.timeEnd()), daily.interval()).map(
+                (t) => new Date((t + utcOffsetSeconds) * 1000)
+            ),
+            weatherCode: daily.variables(0).valuesArray(),
+            temperature2mMax: daily.variables(1).valuesArray(),
+            temperature2mMin: daily.variables(2).valuesArray(),
+            apparentTemperatureMax: daily.variables(3).valuesArray(),
+            apparentTemperatureMin: daily.variables(4).valuesArray(),
+            uvIndexMax: daily.variables(5).valuesArray(),
+            precipitationProbabilityMax: daily.variables(6).valuesArray(),
+            windSpeed10mMax: daily.variables(7).valuesArray(),
+        },
+    };
+    const weatherData = rawWeatherData.daily.time.map((time, index) => ({
+        time: time,
+        weatherCode: rawWeatherData.daily.weatherCode[index],
+        temperature2mMax: rawWeatherData.daily.temperature2mMax[index],
+        temperature2mMin: rawWeatherData.daily.temperature2mMin[index],
+        apparentTemperatureMax: rawWeatherData.daily.apparentTemperatureMax[index],
+        apparentTemperatureMin: rawWeatherData.daily.apparentTemperatureMin[index],
+        uvIndexMax: rawWeatherData.daily.uvIndexMax[index],
+        precipitationProbabilityMax: rawWeatherData.daily.precipitationProbabilityMax[index],
+        windSpeed10mMax: rawWeatherData.daily.windSpeed10mMax[index]
+    }));
+    return weatherData;
+}
 
 // fetch weather data
 router.get('/weather', async (req, res) => {
@@ -35,7 +74,7 @@ router.get('/weather', async (req, res) => {
             throw new Error('Missing environment variables');
         }
 
-        const request = `${weather_uri}/weather/realtime?location=${encodeURIComponent(location)}&apikey=${weather_apiKey}`;
+        const request = `${weather_uri}/weather/realtime?location=${location}&apikey=${weather_apiKey}`;
         const response = await axios.get(request);
 
         // save data
@@ -98,7 +137,6 @@ router.post('/historical', async (req, res) => {
             location,
             startTime,
             endTime,
-            units,
         } = req.body;
 
         // go for DB first
@@ -113,7 +151,6 @@ router.post('/historical', async (req, res) => {
         const matchingData = cachedData.filter(weather =>
             areLocationsSimilar(weather.location.name, location)
         ).sort((a, b) => a.date - b.date);
-
         // if there are enough data in DB
         const expectedDays = Math.floor((endDate - startDate) / (24 * 60 * 60 * 1000)) + 1;
         if (matchingData.length === expectedDays) {
@@ -132,20 +169,44 @@ router.post('/historical', async (req, res) => {
         // fetch from API
         const weather_uri = process.env.WEATHER_URI;
         const weather_apiKey = process.env.WEATHER_API_KEY;
-        if (!weather_uri || !weather_apiKey) {
+        const historical_weather_uri = process.env.HISTORICAL_WEATHER_URI;
+        if (!weather_uri || !weather_apiKey || !historical_weather_uri) {
             throw new Error('Missing environment variables');
         }
-
-        const request = `${weather_uri}/historical?apikey=${weather_apiKey}`;
-        const payload = { location, startTime, endTime, units };
-        const response = await axios.post(request, payload);
+        // fetch the lat and lon, since they are required for open-meteo
+        const request = `${weather_uri}/weather/realtime?location=${location}&apikey=${weather_apiKey}`;
+        const responseForLocation = await axios.get(request);
+        const lat = responseForLocation.data.location.lat;
+        const lon = responseForLocation.data.location.lon;
+        const payload = {
+            "latitude": lat,
+            "longitude": lon,
+            "past_days": 92,
+            "daily": ["weather_code", "temperature_2m_max", "temperature_2m_min", "apparent_temperature_max", "apparent_temperature_min", "uv_index_max", "precipitation_probability_max", "wind_speed_10m_max"]
+        };
+        const responses = await fetchWeatherApi(historical_weather_uri, payload);
+        const weatherData = parseOpenMeteoData(responses).filter(data => {
+            const dataTime = new Date(data.time).getTime();
+            return dataTime >= startDate.getTime() && dataTime <= endDate.getTime();
+        }).sort((a, b) => {
+            const timeA = new Date(a.time).getTime();
+            const timeB = new Date(b.time).getTime();
+            return timeB - timeA;
+        });
 
         // Save to DB
-        const historicalPromises = response.data.data.timelines.map(timeline =>
+        const historicalPromises = weatherData.map(weather =>
             Weather.upsertWeather({
-                date: new Date(normalizeDate(timeline.time)),
-                values: timeline.values,
-                location: response.data.location
+                date: new Date(normalizeDate(weather.time)),
+                values: {
+                    temperature: (weather.temperature2mMax + weather.temperature2mMin) / 2,
+                    weatherCode: weather.weatherCode,
+                    windSpeed: weather.windSpeed10mMax,
+                    precipitationProbability: weather.precipitationProbabilityMax,
+                    uvIndex: weather.uvIndexMax,
+                    apparentTemperature: (weather.apparentTemperatureMax + weather.apparentTemperatureMin) / 2
+                },
+                location: responseForLocation.data.location
             })
         );
         const savedRecords = await Promise.all(historicalPromises);
@@ -157,10 +218,20 @@ router.post('/historical', async (req, res) => {
                     values: record.values
                 }))
             },
-            location: response.data.location,
+            location: responseForLocation.data.location,
         });
     } catch (error) {
         console.error('Error in historical route:', error);
+        if (error.response) {
+            if (error.response.status === 403) {
+                return res.status(403).json({
+                    error: 'The authentication token in use is restricted and cannot access the requested resource.'
+                });
+            }
+            return res.status(error.response.status).json({
+                error: `Failed to fetch historical data: ${error.response.data.message || error.message}`
+            });
+        }
         res.status(500).json({
             error: 'Failed to fetch historical weather data',
             details: error.message

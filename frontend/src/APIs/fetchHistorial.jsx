@@ -4,7 +4,6 @@ export const fetchHistorical = async ({
     location,
     startTime,
     endTime,
-    units = "metric"
 }) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
     try {
@@ -22,7 +21,6 @@ export const fetchHistorical = async ({
             location,
             startTime: new Date(startTime).toISOString(),
             endTime: new Date(endTime).toISOString(),
-            units
         };
         console.log('Fetching historical weather data:', requestBody);
 
@@ -41,6 +39,9 @@ export const fetchHistorical = async ({
             error: null
         };
     } catch (error) {
+        if (error.response && error.status == 403) {
+            throw new Error('The authentication token in use is restricted and cannot access the historical resource.');
+        }
         console.error('Error fetching historical weather:', error);
         return {
             success: false,

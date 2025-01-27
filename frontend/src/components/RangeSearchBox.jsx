@@ -4,7 +4,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Input from "./Input";
 
-const RangeSearchBox = ( onSearch ) => {
+const RangeSearchBox = ( { onSearch } ) => {
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [location, setLocation] = useState("");
