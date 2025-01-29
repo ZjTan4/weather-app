@@ -123,6 +123,7 @@
 ---
 
 ## Known Issues and Future Improvements
+- **Backedn Delay**: Since the backend is deployed on Render with a free plan, which can spin down with inactivity, the first visit to this website can be very slowed (10s). Therefore, in the first visit it is very likely that the user only sees a loading page, but don't panic, reload the page after ~10s, everything should work properly after that. 
 - **Unsorted Database Records**: .
 - **Weather APIs Integration**: .
 
